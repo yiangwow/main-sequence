@@ -1,0 +1,1123 @@
+<title>Main Sequence</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --void:#07060e;
+    --panel:#0e0d1acc;
+    --panel-solid:#0e0d1a;
+    --line:#23223a;
+    --moon:#c9cbe0;
+    --dim:#6e7091;
+    --faint:#43445f;
+    --h:#ff5349; --he:#ffd23f; --c:#4faaff; --o:#3fe08f; --si:#8f6bff; --fe:#aeb9d6;
+    --dust:#ffe9b0;
+    --mono:ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace;
+    --serif:Georgia,'Times New Roman',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none !important}
+  html,body{height:100%}
+  body{
+    background:var(--void);
+    color:var(--moon);
+    font-family:var(--mono);
+    font-size:13px;
+    overflow:hidden;
+    -webkit-user-select:none;user-select:none;
+  }
+  #sky{position:fixed;inset:0;cursor:pointer;display:block}
+  #sky:focus-visible{outline:2px solid var(--dust);outline-offset:-4px}
+
+  /* ---------- HUD (over the star) ---------- */
+  #hud{position:fixed;top:20px;left:24px;pointer-events:none;max-width:min(46vw,420px)}
+  #hud .eyebrow{font-size:10px;letter-spacing:.28em;color:var(--dim);text-transform:uppercase}
+  #stage-label{
+    margin-top:6px;font-size:clamp(20px,3vw,30px);letter-spacing:.14em;
+    color:#fff;text-transform:uppercase;font-weight:400;
+  }
+  #stage-class{margin-top:4px;font-size:11px;letter-spacing:.12em;color:var(--dim)}
+
+  #log{
+    position:fixed;bottom:18px;left:24px;pointer-events:none;
+    max-width:min(52vw,460px);display:flex;flex-direction:column;gap:5px;
+  }
+  #log .entry{
+    font-family:var(--serif);font-style:italic;font-size:13.5px;line-height:1.45;
+    color:var(--dim);transition:color 1.2s, opacity 1.2s;
+  }
+  #log .entry.fresh{color:var(--moon)}
+  #log .entry .t{font-family:var(--mono);font-style:normal;font-size:9.5px;color:var(--faint);letter-spacing:.1em;margin-right:8px}
+
+  .floater{
+    position:fixed;pointer-events:none;color:var(--dust);font-size:12px;letter-spacing:.05em;
+    animation:floatUp .9s ease-out forwards;text-shadow:0 0 8px rgba(255,233,176,.5);z-index:5;
+  }
+  @keyframes floatUp{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-46px)}}
+
+  /* ---------- Console ---------- */
+  #console{
+    position:fixed;top:0;right:0;bottom:0;width:400px;
+    background:var(--panel);backdrop-filter:blur(10px);
+    border-left:1px solid var(--line);
+    overflow-y:auto;overscroll-behavior:contain;
+    padding:22px 20px 30px;
+    display:flex;flex-direction:column;gap:22px;
+  }
+  #console::-webkit-scrollbar{width:8px}
+  #console::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px}
+
+  #console header .title{font-size:15px;letter-spacing:.34em;color:#fff;text-transform:uppercase}
+  #console header .sub{margin-top:5px;font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--dim);line-height:1.4}
+
+  /* spectrum strip — the instrument */
+  #spec-wrap{display:flex;flex-direction:column;gap:6px}
+  #spectrum{
+    position:relative;height:52px;border:1px solid var(--line);border-radius:3px;
+    background:
+      linear-gradient(90deg,
+        rgba(90,40,160,.10) 0%, rgba(40,80,220,.10) 22%, rgba(30,180,140,.10) 38%,
+        rgba(180,200,40,.09) 55%, rgba(230,120,30,.09) 74%, rgba(220,40,30,.10) 100%),
+      #0a0916;
+    overflow:hidden;
+  }
+  .spec-line{
+    position:absolute;top:0;bottom:0;width:2px;transform:translateX(-1px);
+    transition:opacity .6s;
+  }
+  .spec-tag{
+    position:absolute;top:3px;transform:translateX(-50%);
+    font-size:8.5px;letter-spacing:.08em;color:var(--dim);transition:opacity .6s;
+  }
+  #spec-scale{display:flex;justify-content:space-between;font-size:8.5px;color:var(--faint);letter-spacing:.1em;padding:0 1px}
+
+  /* resources */
+  #resources{display:flex;flex-direction:column;gap:6px}
+  .res-row{display:flex;align-items:baseline;gap:10px;font-variant-numeric:tabular-nums}
+  .res-row .sym{
+    width:26px;text-align:center;font-size:11px;padding:2px 0;border-radius:2px;
+    background:#ffffff0d;border:1px solid var(--line);
+  }
+  .res-row .rname{color:var(--dim);font-size:11px;letter-spacing:.06em;flex:0 0 76px}
+  .res-row .amt{color:#fff;font-size:14px;margin-left:auto}
+  .res-row .rate{color:var(--dim);font-size:10.5px;flex:0 0 74px;text-align:right}
+  .res-row .rate.neg{color:#c96a5a}
+
+  /* sections */
+  section .sec-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:10px;
+  }
+  section .sec-head h2{font-size:10.5px;letter-spacing:.3em;color:var(--dim);text-transform:uppercase;font-weight:400}
+  section .sec-head .note{font-size:9.5px;color:var(--faint);letter-spacing:.06em}
+  #buyqty{
+    background:none;border:1px solid var(--line);border-radius:2px;color:var(--moon);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;padding:2px 8px;
+    cursor:pointer;margin-right:8px;transition:border-color .2s;
+  }
+  #buyqty:hover{border-color:#4a4a72}
+  #buyqty:focus-visible{outline:2px solid var(--dust)}
+  .rows{display:flex;flex-direction:column;gap:8px}
+
+  button.buy{
+    display:block;width:100%;text-align:left;
+    background:#12112000;border:1px solid var(--line);border-radius:3px;
+    color:var(--moon);font-family:var(--mono);font-size:12px;
+    padding:9px 11px;cursor:pointer;
+    transition:border-color .2s, background .2s;
+  }
+  button.buy:hover:not(:disabled){border-color:#4a4a72;background:#161528}
+  button.buy:focus-visible{outline:2px solid var(--dust);outline-offset:1px}
+  button.buy:disabled{cursor:default;opacity:.45}
+  button.buy .row1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  button.buy .bname{color:#fff;letter-spacing:.04em}
+  button.buy .count{color:var(--dim);font-size:11px;font-variant-numeric:tabular-nums}
+  button.buy .row2{display:flex;justify-content:space-between;gap:8px;margin-top:4px;align-items:baseline}
+  button.buy .bdesc{font-family:var(--serif);font-style:italic;color:var(--dim);font-size:11.5px;line-height:1.35;max-width:70%}
+  button.buy .cost{font-size:11px;color:var(--dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+  button.buy.affordable .cost{color:var(--dust)}
+  button.buy .flow{font-size:10px;color:var(--faint);margin-top:3px;letter-spacing:.04em}
+
+  /* core / supernova */
+  #core-silent{font-family:var(--serif);font-style:italic;color:var(--faint);font-size:12.5px}
+  #chandra{margin-bottom:10px}
+  #chandra .bar{
+    height:10px;border:1px solid var(--line);border-radius:2px;background:#0a0916;overflow:hidden;
+  }
+  #chandra .fill{
+    height:100%;width:0%;
+    background:linear-gradient(90deg,#5a3a30,var(--h) 60%,#fff);
+    transition:width .3s;
+  }
+  #chandra .cap{display:flex;justify-content:space-between;font-size:9.5px;color:var(--dim);margin-top:4px;letter-spacing:.08em}
+  #nova-btn{
+    display:block;width:100%;margin-top:10px;padding:13px;
+    background:#1a0d0d;border:1px solid #59302a;border-radius:3px;
+    color:#f0c0b0;font-family:var(--mono);font-size:13px;letter-spacing:.22em;text-transform:uppercase;
+    cursor:pointer;transition:all .3s;
+  }
+  #nova-btn:disabled{opacity:.35;cursor:default;letter-spacing:.14em}
+  #nova-btn.ready{
+    border-color:var(--h);color:#fff;background:#2a0f0c;
+    animation:novaPulse 1.6s ease-in-out infinite;
+  }
+  #nova-btn:focus-visible{outline:2px solid var(--dust);outline-offset:1px}
+  @keyframes novaPulse{
+    0%,100%{box-shadow:0 0 0 rgba(255,83,73,0)}
+    50%{box-shadow:0 0 22px rgba(255,83,73,.45)}
+  }
+  #nova-gain{font-size:10px;color:var(--dim);text-align:center;margin-top:6px;letter-spacing:.08em}
+
+  /* remnants */
+  .rem-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px;border:1px solid var(--line);border-radius:3px;padding:8px 11px;font-size:11.5px}
+  .rem-row .rid{color:#fff;letter-spacing:.08em;white-space:nowrap}
+  .rem-row .rwhat{color:var(--dim);font-size:10.5px;text-align:right;font-style:italic;font-family:var(--serif)}
+  #rem-summary{font-size:10px;color:var(--dim);letter-spacing:.06em;margin-bottom:10px;line-height:1.7}
+  #rem-summary b{color:var(--moon);font-weight:400}
+
+  #dust-bal{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  #dust-bal .lab{font-size:10px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+  #dust-bal .val{color:var(--dust);font-size:15px;font-variant-numeric:tabular-nums;text-shadow:0 0 10px rgba(255,233,176,.35)}
+
+  footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  footer .hint{font-size:9.5px;color:var(--faint);letter-spacing:.06em;line-height:1.5}
+  footer button{
+    background:none;border:none;color:var(--faint);font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.1em;cursor:pointer;text-decoration:underline;text-underline-offset:3px;
+  }
+  footer button:hover{color:var(--h)}
+  footer button:focus-visible{outline:2px solid var(--dust)}
+
+  /* supernova overlay */
+  #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
+  #nova-screen{
+    position:fixed;inset:0;z-index:30;display:none;
+    align-items:center;justify-content:center;flex-direction:column;gap:18px;
+    background:radial-gradient(ellipse at center,rgba(20,8,10,.88),rgba(4,3,8,.97));
+    text-align:center;padding:24px;
+  }
+  #nova-screen.show{display:flex}
+  #nova-screen .des{font-size:11px;letter-spacing:.3em;color:var(--dim)}
+  #nova-screen h1{font-size:clamp(30px,6vw,52px);letter-spacing:.3em;color:#fff;font-weight:400;text-transform:uppercase;text-shadow:0 0 40px rgba(255,120,90,.6)}
+  #nova-screen .yield{font-size:14px;color:var(--dust);letter-spacing:.1em}
+  #nova-screen .verse{font-family:var(--serif);font-style:italic;font-size:15px;color:var(--moon);max-width:440px;line-height:1.7}
+  #nova-screen button{
+    margin-top:10px;padding:12px 34px;background:none;color:var(--moon);
+    border:1px solid var(--line);border-radius:3px;font-family:var(--mono);
+    font-size:12px;letter-spacing:.24em;text-transform:uppercase;cursor:pointer;transition:all .25s;
+  }
+  #nova-screen button:hover{border-color:var(--dust);color:#fff}
+  #nova-screen button:focus-visible{outline:2px solid var(--dust)}
+
+  /* mobile */
+  @media (max-width:720px){
+    #console{top:44vh;left:0;right:0;bottom:0;width:auto;border-left:none;border-top:1px solid var(--line);padding:16px 14px 26px}
+    #hud{top:12px;left:14px}
+    #log{display:none}
+    body{overflow:hidden}
+  }
+  @media (prefers-reduced-motion: reduce){
+    #nova-btn.ready{animation:none;box-shadow:0 0 16px rgba(255,83,73,.4)}
+    .floater{animation-duration:.01s}
+  }
+</style>
+
+<canvas id="sky" role="button" tabindex="0" aria-label="Accrete hydrogen"></canvas>
+
+<div id="hud">
+  <div class="eyebrow">Observation Log · Object IS-2026</div>
+  <div id="stage-label">Protostar</div>
+  <div id="stage-class">Class M — not yet burning</div>
+</div>
+
+<div id="log" aria-live="polite"></div>
+
+<div id="console">
+  <header>
+    <div class="title">Main Sequence</div>
+    <div class="sub">Gather a cloud. Light a fire that lasts ten billion years. End as everything.</div>
+  </header>
+
+  <div id="spec-wrap">
+    <div id="spectrum" aria-hidden="true"></div>
+    <div id="spec-scale"><span>380 nm</span><span>EMISSION SPECTRUM</span><span>750 nm</span></div>
+  </div>
+
+  <div id="resources"></div>
+
+  <section id="sec-accretion">
+    <div class="sec-head"><h2>Accretion</h2><span><button id="buyqty" title="Buy quantity">buy ×1</button><span class="note" id="hps-note"></span></span></div>
+    <div class="rows" id="gen-rows"></div>
+  </section>
+
+  <section id="sec-fusion" hidden>
+    <div class="sec-head"><h2>Nucleosynthesis</h2><span class="note">8 : 1 burn ratio</span></div>
+    <div class="rows" id="proc-rows"></div>
+  </section>
+
+  <section id="sec-upgrades" hidden>
+    <div class="sec-head"><h2>Stellar Structure</h2></div>
+    <div class="rows" id="upg-rows"></div>
+  </section>
+
+  <section id="sec-core" hidden>
+    <div class="sec-head"><h2>Core</h2><span class="note">Chandrasekhar limit</span></div>
+    <div id="core-silent">The core is silent.</div>
+    <div id="core-live" hidden>
+      <div id="chandra">
+        <div class="bar"><div class="fill" id="chandra-fill"></div></div>
+        <div class="cap"><span id="chandra-amt">0 / 1.50K Fe</span><span>IRON DOES NOT BURN</span></div>
+      </div>
+      <button id="nova-btn" disabled>Core stable</button>
+      <div id="nova-gain"></div>
+    </div>
+  </section>
+
+  <section id="sec-remnants" hidden>
+    <div class="sec-head"><h2>Remnants</h2><span class="note">the graveyard works for you</span></div>
+    <div id="rem-summary"></div>
+    <div class="rows" id="rem-rows"></div>
+  </section>
+
+  <section id="sec-dust" hidden>
+    <div class="sec-head"><h2>Stardust</h2><span class="note">survives collapse</span></div>
+    <div id="dust-bal"><span class="lab">Forged in supernovae</span><span class="val" id="dust-amt">0 ✦</span></div>
+    <div class="rows" id="dust-rows"></div>
+  </section>
+
+  <footer>
+    <div class="hint">Click the star to accrete.<br>The ×N toggle (or shift-click) buys in bulk. Autosaves.</div>
+    <button id="wipe">collapse timeline</button>
+  </footer>
+</div>
+
+<div id="flash"></div>
+<div id="nova-screen">
+  <div class="des" id="nova-des">SN 2026-α</div>
+  <h1>Supernova</h1>
+  <div class="yield" id="nova-yield"></div>
+  <div class="verse" id="nova-remnant" style="font-size:13px;color:var(--dim)"></div>
+  <div class="verse">Every atom of gold, every grain of iron in a planet's heart, was scattered by a moment like this one.<br>You were born to be a star.</div>
+  <button id="nova-continue">Begin again</button>
+</div>
+
+<script>
+'use strict';
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = id => document.getElementById(id);
+const GREEK = ['α','β','γ','δ','ε','ζ','η','θ','ι','κ','λ','μ','ν','ξ','ο','π','ρ','σ','τ','υ','φ','χ','ψ','ω'];
+
+/* ---------------- data ---------------- */
+const EL = {
+  H:{sym:'H', name:'Hydrogen', nm:656, color:'#ff5349'},
+  He:{sym:'He',name:'Helium',  nm:587, color:'#ffd23f'},
+  C:{sym:'C', name:'Carbon',   nm:473, color:'#4faaff'},
+  O:{sym:'O', name:'Oxygen',   nm:501, color:'#3fe08f'},
+  Si:{sym:'Si',name:'Silicon', nm:413, color:'#8f6bff'},
+  Fe:{sym:'Fe',name:'Iron',    nm:438, color:'#aeb9d6'},
+};
+const ORDER = ['H','He','C','O','Si','Fe'];
+
+const GENS = [
+  {id:'bok',   name:'Bok Globule',      desc:'A cold dark knot of dust, falling inward.',        base:0.4,  cost:15},
+  {id:'cloud', name:'Molecular Cloud',  desc:'Light-years of hydrogen, slowly surrendering.',    base:3,    cost:120},
+  {id:'disk',  name:'Accretion Disk',   desc:'Matter spirals in, shedding angular momentum.',    base:22,   cost:1400},
+  {id:'jet',   name:'Protostellar Jet', desc:'Infall so fierce the poles vent plasma.',          base:160,  cost:16000},
+  {id:'nebula',name:'Infalling Nebula', desc:'A whole stellar nursery feeds one hungry core.',   base:1100, cost:2.0e5},
+  {id:'tide',  name:'Galactic Tide',    desc:'The spiral arm itself tips matter toward you.',    base:8000, cost:2.6e6},
+];
+const GEN_GROWTH = 1.15;
+
+const PROCS = [
+  {id:'pp', name:'Proton–Proton Chain', inp:'H', out:'He', cost:400, desc:'Four protons in, one helium out. Ignition.'},
+  {id:'ta', name:'Triple-Alpha Process',inp:'He',out:'C',  cost:350, desc:'Three heliums collide in a heartbeat of a heartbeat.'},
+  {id:'al', name:'Alpha Ladder',        inp:'C', out:'O',  cost:300, desc:'Climb the ladder one helium rung at a time.'},
+  {id:'ob', name:'Oxygen Burning',      inp:'O', out:'Si', cost:280, desc:'A day of this fire outshines a million years of hydrogen.'},
+  {id:'sb', name:'Silicon Burning',     inp:'Si',out:'Fe', cost:250, desc:'The last exothermic fire. Beyond iron, nothing burns.'},
+];
+const PROC_GROWTH = 1.18, BURN = 8;
+
+const UPGS = [
+  {id:'tunneling', name:'Quantum Tunneling',   cur:'H',  cost:2000,  desc:'Protons cheat the Coulomb barrier. Clicks ×10.'},
+  {id:'compress',  name:'Core Compression',    cur:'He', cost:1200,  desc:'Pressure sharpens every fire. Fusion output ×2.'},
+  {id:'radiative', name:'Radiative Zone',      cur:'H',  cost:5000,  desc:'Photons random-walk outward for millennia. Accretion ×2.'},
+  {id:'convective',name:'Convective Overturn', cur:'H',  cost:3.0e5, desc:'The envelope boils over. Accretion ×3.'},
+  {id:'neutrino',  name:'Neutrino Cooling',    cur:'O',  cost:800,   desc:'Ghost particles bleed heat; the burning races. Fusion output ×2.'},
+];
+
+const DUSTS = [
+  {id:'metal',     name:'Metallicity',      leveled:true, baseCost:3, desc:'Heavier seeds, faster collapse. All production +25% per level.'},
+  {id:'degenerate',name:'Degenerate Matter',cost:3,  desc:'Electron pressure answers your touch. Clicks ×10.'},
+  {id:'pop2',      name:'Population II',    cost:4,  desc:'Born of enriched gas: begin each cycle with 500 H and the proton–proton chain known.'},
+  {id:'cno',       name:'CNO Cycle',        cost:6,  desc:'Carbon catalyzes hydrogen burning. Fusion output +50%.'},
+];
+
+const CHANDRA = 1500;
+const TOV = 3600; // Tolman–Oppenheimer–Volkoff: collapse past this and not even light escapes
+
+const STAGES = [
+  {label:'Protostar',     cls:'Class M — not yet burning',      r:0.085, inner:'#c2704a', outer:'#3d1f18', glow:'#7a3a24'},
+  {label:'Main Sequence', cls:'G2 V — hydrogen burning',        r:0.125, inner:'#fff6d8', outer:'#ffb32e', glow:'#ffb84d'},
+  {label:'Subgiant',      cls:'K3 IV — shell burning',          r:0.155, inner:'#ffe7b8', outer:'#ff8d2e', glow:'#ff9440'},
+  {label:'Red Giant',     cls:'M2 III — helium core alight',    r:0.215, inner:'#ffd9a8', outer:'#ff5a28', glow:'#ff5f2e'},
+  {label:'Supergiant',    cls:'M1 Ia — burning in onion shells',r:0.29,  inner:'#ffc9a0', outer:'#e83a20', glow:'#e83a20'},
+  {label:'Iron Core',     cls:'Si → Fe — collapse imminent',    r:0.26,  inner:'#ffffff', outer:'#e0301c', glow:'#ff8a70'},
+];
+
+const LOG_LINES = {
+  start:'A cold cloud begins to fall inward.',
+  stage1:'Ignition. Hydrogen burns at the core. You are on the main sequence.',
+  stage2:'The core contracts and grows hot enough for helium to catch.',
+  stage3:'The envelope swells a thousandfold. You are becoming enormous.',
+  stage4:'Shell upon shell of fire, each one briefer and fiercer than the last.',
+  stage5:'Iron gathers at the heart — the ash no fire can eat. The end begins.',
+  ready:'The core exceeds the Chandrasekhar limit. It cannot hold.',
+};
+
+/* ---------------- state ---------------- */
+const SAVE_KEY = 'main-sequence-save-v1';
+let S;
+function freshRun(){
+  return {
+    res:{H:0,He:0,C:0,O:0,Si:0,Fe:0},
+    earned:{H:0,He:0,C:0,O:0,Si:0,Fe:0},
+    gens:{}, procs:{}, upgs:{},
+  };
+}
+function freshState(){
+  return Object.assign(freshRun(), {
+    dust:0, dustSpent:{}, metalLvl:0, novas:0, remnants:[],
+    startedLog:false, loggedStages:{}, loggedReady:false,
+    last:Date.now(),
+  });
+}
+function addRemnant(type){
+  let u, v, tries = 0;
+  do{ u = 0.06+Math.random()*0.88; v = 0.10+Math.random()*0.80; tries++; }
+  while(tries < 40 && Math.hypot(u-0.36, v-0.5) < 0.24);
+  S.remnants.push({t:type, s:(Math.random()*1e9)>>>0, u, v});
+}
+const nsCount = () => S.remnants.filter(r=>r.t==='ns').length;
+const bhCount = () => S.remnants.filter(r=>r.t==='bh').length;
+function applyPop2(){
+  if (S.dustSpent.pop2 && !S.procs.pp){ S.procs.pp = 1; S.res.H = Math.max(S.res.H, 500); }
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){
+      S = Object.assign(freshState(), JSON.parse(raw));
+      if(!Array.isArray(S.remnants)) S.remnants = [];
+      // v1 saves: past supernovae become remnants retroactively
+      while(S.remnants.length < (S.novas||0)) addRemnant(S.remnants.length % 3 === 2 ? 'bh' : 'ns');
+      return;
+    }
+  }catch(e){}
+  S = freshState();
+}
+function save(){ S.last = Date.now(); try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ---------------- math ---------------- */
+const SUF = ['','K','M','B','T','Qa','Qi','Sx','Sp','Oc'];
+function fmt(n){
+  if(!isFinite(n)) return '∞';
+  if(n < 0) return '-'+fmt(-n);
+  if(n < 1000) return (n < 100 && n % 1 !== 0) ? n.toFixed(1) : Math.floor(n).toString();
+  let tier = Math.floor(Math.log10(n)/3);
+  tier = Math.min(tier, SUF.length-1);
+  const v = n / 10**(tier*3);
+  return (v >= 100 ? v.toFixed(0) : v.toFixed(v >= 10 ? 1 : 2)) + SUF[tier];
+}
+const genCost  = g => Math.ceil(g.cost * GEN_GROWTH ** (S.gens[g.id]||0));
+const procCost = p => Math.ceil(p.cost * PROC_GROWTH ** (S.procs[p.id]||0));
+function bulkCost(base, growth, owned, qty){
+  let tot = 0;
+  for(let i=0;i<qty;i++) tot += Math.ceil(base * growth ** (owned+i));
+  return tot;
+}
+
+let buyQty = 1, shiftHeld = false;
+addEventListener('keydown', e=>{ shiftHeld = e.shiftKey; });
+addEventListener('keyup',   e=>{ shiftHeld = e.shiftKey; });
+addEventListener('blur', ()=>{ shiftHeld = false; });
+const buyTimes = e => (e && (e.shiftKey || shiftHeld)) ? Math.max(10, buyQty) : buyQty;
+const dustCost = d => d.leveled ? d.baseCost * 2 ** (S.metalLvl||0) : d.cost;
+
+function globalMult(){ return (1 + 0.08*S.dust) * 1.25 ** (S.metalLvl||0) * 1.3 ** bhCount(); }
+function genMult(){ let m=1; if(S.upgs.radiative)m*=2; if(S.upgs.convective)m*=3; return m; }
+function fusionMult(){ let m=1; if(S.upgs.compress)m*=2; if(S.upgs.neutrino)m*=2; if(S.dustSpent.cno)m*=1.5; return m; }
+function clickMult(){ let m=1; if(S.upgs.tunneling)m*=10; if(S.dustSpent.degenerate)m*=10; return m; }
+function genHps(){ return GENS.reduce((a,g)=>a+(S.gens[g.id]||0)*g.base,0) * genMult() * globalMult(); }
+function novaGain(){ return S.res.Fe >= CHANDRA ? Math.floor(6*Math.sqrt(S.res.Fe/CHANDRA)) : 0; }
+
+let rates = {H:0,He:0,C:0,O:0,Si:0,Fe:0};
+
+function produce(dt){
+  const r = {H:0,He:0,C:0,O:0,Si:0,Fe:0};
+  const hps = genHps();
+  S.res.H += hps*dt; S.earned.H += hps*dt; r.H += hps;
+  const fm = fusionMult()*globalMult();
+  for(const p of PROCS){
+    const n = S.procs[p.id]||0; if(!n) continue;
+    const cap = n*BURN*dt;
+    const use = Math.min(cap, S.res[p.inp]);
+    if(use<=0) continue;
+    S.res[p.inp] -= use;
+    const made = use/BURN*fm;
+    S.res[p.out] += made; S.earned[p.out] += made;
+    r[p.inp] -= use/dt; r[p.out] += made/dt;
+  }
+  rates = r;
+}
+
+function stageIdx(){
+  if((S.procs.sb||0)>0 && S.earned.Fe>0) return 5;
+  if((S.procs.ob||0)>0) return 4;
+  if((S.procs.al||0)>0) return 3;
+  if((S.procs.ta||0)>0) return 2;
+  if((S.procs.pp||0)>0) return 1;
+  return 0;
+}
+
+/* ---------------- log ---------------- */
+const logEl = $('log');
+function logLine(text){
+  const e = document.createElement('div');
+  e.className = 'entry fresh';
+  const now = new Date();
+  e.innerHTML = `<span class="t">${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}</span>`;
+  e.appendChild(document.createTextNode(text));
+  logEl.appendChild(e);
+  setTimeout(()=>e.classList.remove('fresh'), 4000);
+  while(logEl.children.length > 5) logEl.removeChild(logEl.firstChild);
+}
+
+/* ---------------- UI build ---------------- */
+const specEl = $('spectrum');
+const specLines = {}, specTags = {};
+for(const k of ORDER){
+  const x = ((EL[k].nm-380)/(750-380))*100;
+  const l = document.createElement('div');
+  l.className = 'spec-line';
+  l.style.left = x+'%';
+  l.style.background = EL[k].color;
+  l.style.opacity = '0.04';
+  specEl.appendChild(l);
+  const t = document.createElement('div');
+  t.className = 'spec-tag'; t.textContent = EL[k].sym;
+  t.style.left = x+'%'; t.style.color = EL[k].color; t.style.opacity = '0';
+  specEl.appendChild(t);
+  specLines[k]=l; specTags[k]=t;
+}
+
+const resEl = $('resources'), resRows = {};
+for(const k of ORDER){
+  const row = document.createElement('div');
+  row.className = 'res-row'; row.hidden = true;
+  row.innerHTML = `<span class="sym" style="color:${EL[k].color};border-color:${EL[k].color}33">${EL[k].sym}</span>
+    <span class="rname">${EL[k].name}</span>
+    <span class="amt">0</span><span class="rate"></span>`;
+  resEl.appendChild(row);
+  resRows[k] = {row, amt:row.querySelector('.amt'), rate:row.querySelector('.rate')};
+}
+
+function buyBtn(container){
+  const b = document.createElement('button');
+  b.className = 'buy'; b.hidden = true;
+  b.innerHTML = `<div class="row1"><span class="bname"></span><span class="count"></span></div>
+    <div class="row2"><span class="bdesc"></span><span class="cost"></span></div><div class="flow"></div>`;
+  container.appendChild(b);
+  return {btn:b, name:b.querySelector('.bname'), count:b.querySelector('.count'),
+          desc:b.querySelector('.bdesc'), cost:b.querySelector('.cost'), flow:b.querySelector('.flow')};
+}
+
+const genUI = GENS.map(g=>{
+  const u = buyBtn($('gen-rows'));
+  u.name.textContent = g.name; u.desc.textContent = g.desc; u.flow.remove();
+  u.btn.addEventListener('click', e=>{
+    for(let i=0, times=buyTimes(e); i<times; i++){
+      const c = genCost(g);
+      if(S.res.H < c) break;
+      S.res.H -= c; S.gens[g.id]=(S.gens[g.id]||0)+1;
+    }
+    refresh(true);
+  });
+  return u;
+});
+
+const procUI = PROCS.map(p=>{
+  const u = buyBtn($('proc-rows'));
+  u.name.textContent = p.name; u.desc.textContent = p.desc;
+  u.btn.addEventListener('click', e=>{
+    let bought = false;
+    for(let i=0, times=buyTimes(e); i<times; i++){
+      const c = procCost(p);
+      if(S.res[p.inp] < c) break;
+      S.res[p.inp] -= c; S.procs[p.id]=(S.procs[p.id]||0)+1; bought = true;
+    }
+    if(bought) checkStageLog();
+    refresh(true);
+  });
+  return u;
+});
+
+const upgUI = UPGS.map(u0=>{
+  const u = buyBtn($('upg-rows'));
+  u.name.textContent = u0.name; u.desc.textContent = u0.desc; u.count.remove(); u.flow.remove();
+  u.btn.addEventListener('click', ()=>{
+    if(S.upgs[u0.id] || S.res[u0.cur] < u0.cost) return;
+    S.res[u0.cur] -= u0.cost; S.upgs[u0.id] = true;
+    logLine(`${u0.name} established.`);
+    refresh(true);
+  });
+  return u;
+});
+
+const dustUI = DUSTS.map(d=>{
+  const u = buyBtn($('dust-rows'));
+  u.name.textContent = d.name; u.desc.textContent = d.desc; u.flow.remove();
+  u.btn.addEventListener('click', ()=>{
+    const c = dustCost(d);
+    if(S.dust < c) return;
+    if(d.leveled){ S.dust -= c; S.metalLvl=(S.metalLvl||0)+1; }
+    else { if(S.dustSpent[d.id]) return; S.dust -= c; S.dustSpent[d.id]=true; if(d.id==='pop2') applyPop2(); }
+    refresh(true);
+  });
+  return u;
+});
+
+/* ---------------- stage / log checks ---------------- */
+function checkStageLog(){
+  const si = stageIdx();
+  for(let i=1;i<=si;i++){
+    if(!S.loggedStages[i]){ S.loggedStages[i]=true; logLine(LOG_LINES['stage'+i]); }
+  }
+}
+
+/* ---------------- refresh (UI tick) ---------------- */
+const stageLabelEl = $('stage-label'), stageClassEl = $('stage-class');
+let lastStage = -1, lastRemCount = -1;
+
+function refresh(force){
+  const si = stageIdx();
+  if(si !== lastStage){
+    lastStage = si;
+    stageLabelEl.textContent = STAGES[si].label;
+    stageClassEl.textContent = STAGES[si].cls;
+  }
+
+  // resources + spectrum
+  for(const k of ORDER){
+    const has = S.earned[k] > 0 || k==='H';
+    resRows[k].row.hidden = !has;
+    if(!has){
+      specLines[k].style.opacity = '0.04';
+      specLines[k].style.boxShadow = 'none';
+      specTags[k].style.opacity = '0';
+    } else {
+      resRows[k].amt.textContent = fmt(S.res[k]);
+      const rt = rates[k];
+      resRows[k].rate.textContent = Math.abs(rt) < 0.005 ? '' : (rt>0?'+':'−')+fmt(Math.abs(rt))+'/s';
+      resRows[k].rate.classList.toggle('neg', rt < -0.005);
+      const op = Math.min(1, 0.18 + Math.log10(S.res[k]+1)/7);
+      specLines[k].style.opacity = op;
+      specLines[k].style.boxShadow = `0 0 ${4+op*10}px ${EL[k].color}`;
+      specTags[k].style.opacity = 0.9;
+    }
+  }
+  $('hps-note').textContent = genHps() > 0 ? '+'+fmt(genHps())+' H/s' : '';
+
+  // generators
+  GENS.forEach((g,i)=>{
+    const u = genUI[i], n = S.gens[g.id]||0;
+    const vis = n>0 || S.earned.H >= g.cost*0.3;
+    u.btn.hidden = !vis;
+    if(!vis) return;
+    const c = buyQty>1 ? bulkCost(g.cost, GEN_GROWTH, n, buyQty) : genCost(g);
+    const ok = S.res.H >= c;
+    u.count.textContent = n>0 ? `× ${n} · +${fmt(n*g.base*genMult()*globalMult())}/s` : '';
+    u.cost.textContent = fmt(c)+' H'+(buyQty>1?` ·×${buyQty}`:'');
+    u.btn.disabled = S.res.H < genCost(g);
+    u.btn.classList.toggle('affordable', ok);
+  });
+
+  // fusion
+  let anyProc = false;
+  PROCS.forEach((p,i)=>{
+    const u = procUI[i], n = S.procs[p.id]||0;
+    const vis = n>0 || S.earned[p.inp] >= p.cost*0.35;
+    u.btn.hidden = !vis;
+    if(!vis) return;
+    anyProc = true;
+    const c = buyQty>1 ? bulkCost(p.cost, PROC_GROWTH, n, buyQty) : procCost(p);
+    const ok = S.res[p.inp] >= c;
+    u.count.textContent = n>0 ? '× '+n : '';
+    u.cost.textContent = fmt(c)+' '+p.inp+(buyQty>1?` ·×${buyQty}`:'');
+    u.flow.textContent = n>0 ? `burns ${fmt(n*BURN)} ${p.inp}/s → ${fmt(n*fusionMult()*globalMult())} ${p.out}/s` : `${BURN} ${p.inp}/s → ${fmt(fusionMult()*globalMult())} ${p.out}/s each`;
+    u.btn.disabled = S.res[p.inp] < procCost(p);
+    u.btn.classList.toggle('affordable', ok);
+  });
+  $('sec-fusion').hidden = !anyProc;
+
+  // upgrades
+  let anyUpg = false;
+  UPGS.forEach((u0,i)=>{
+    const u = upgUI[i];
+    const vis = !S.upgs[u0.id] && S.earned[u0.cur] >= u0.cost*0.4;
+    u.btn.hidden = !vis;
+    if(!vis) return;
+    anyUpg = true;
+    const ok = S.res[u0.cur] >= u0.cost;
+    u.cost.textContent = fmt(u0.cost)+' '+u0.cur;
+    u.btn.disabled = !ok;
+    u.btn.classList.toggle('affordable', ok);
+  });
+  $('sec-upgrades').hidden = !anyUpg;
+
+  // core
+  const coreVis = S.earned.Si > 0 || S.earned.Fe > 0 || S.novas > 0;
+  $('sec-core').hidden = !coreVis;
+  if(coreVis){
+    const live = S.earned.Fe > 0;
+    $('core-silent').hidden = live;
+    $('core-live').hidden = !live;
+    if(live){
+      const p = Math.min(1, S.res.Fe/CHANDRA);
+      $('chandra-fill').style.width = (p*100)+'%';
+      $('chandra-amt').textContent = fmt(S.res.Fe)+' / '+fmt(CHANDRA)+' Fe';
+      const ready = S.res.Fe >= CHANDRA;
+      const nb = $('nova-btn');
+      nb.disabled = !ready;
+      nb.classList.toggle('ready', ready);
+      nb.textContent = ready ? 'Go Supernova' : 'Core stable';
+      $('nova-gain').textContent = ready
+        ? `yield ✦ ${novaGain()} — collapse now: ${S.res.Fe >= TOV ? 'black hole' : 'pulsar'}${S.res.Fe < TOV ? ` · black hole at ${fmt(TOV)} Fe` : ''}`
+        : '';
+      if(ready && !S.loggedReady){ S.loggedReady = true; logLine(LOG_LINES.ready); }
+    }
+  }
+
+  // remnants
+  const remVis = S.remnants.length > 0;
+  $('sec-remnants').hidden = !remVis;
+  if(remVis){
+    if(S.remnants.length !== lastRemCount){
+      lastRemCount = S.remnants.length;
+      const rows = $('rem-rows');
+      rows.textContent = '';
+      S.remnants.forEach((r,i)=>{
+        const d = document.createElement('div');
+        d.className = 'rem-row';
+        d.innerHTML = `<span class="rid"></span><span class="rwhat"></span>`;
+        d.querySelector('.rid').textContent = (r.t==='ns'?'PSR ':'BH ')+(GREEK[i]||i+1);
+        d.querySelector('.rwhat').textContent = r.t==='ns' ? 'a lighthouse of the dead — it tends the fires for you' : 'a wound in spacetime — everything falls faster';
+        rows.appendChild(d);
+      });
+    }
+    const parts = [];
+    const ns = nsCount(), bh = bhCount();
+    if(ns>=1) parts.push('<b>auto-buy: accretion</b>');
+    if(ns>=2) parts.push('<b>auto-buy: fusion</b>');
+    if(ns>=3) parts.push('<b>auto-buy: structure</b>');
+    if(ns>3) parts.push(`pulse every ${Math.max(1, 3-(ns-3)*0.5)}s`);
+    if(bh) parts.push(`<b>×${(1.3**bh).toFixed(2)} all production</b> · offline cap ${2*(1+bh)}h`);
+    $('rem-summary').innerHTML = parts.join(' · ') || '';
+  }
+
+  // stardust
+  const dustVis = S.novas > 0 || S.dust > 0 || S.res.Fe >= CHANDRA*0.5;
+  $('sec-dust').hidden = !dustVis;
+  if(dustVis){
+    $('dust-amt').textContent = fmt(S.dust)+' ✦';
+    DUSTS.forEach((d,i)=>{
+      const u = dustUI[i];
+      const owned = !d.leveled && S.dustSpent[d.id];
+      u.btn.hidden = !!owned;
+      if(owned) return;
+      const c = dustCost(d), ok = S.dust >= c;
+      u.count.textContent = d.leveled && S.metalLvl>0 ? 'lvl '+S.metalLvl : '';
+      u.cost.textContent = c+' ✦';
+      u.btn.disabled = !ok;
+      u.btn.classList.toggle('affordable', ok);
+    });
+  }
+}
+
+/* ---------------- supernova ---------------- */
+let novaAnim = null;
+$('nova-btn').addEventListener('click', ()=>{
+  if(S.res.Fe < CHANDRA) return;
+  const gain = novaGain();
+  const remType = S.res.Fe >= TOV ? 'bh' : 'ns';
+  S.dust += gain;
+  S.novas += 1;
+  addRemnant(remType);
+  $('nova-remnant').textContent = remType==='bh'
+    ? 'The core vanishes behind its own horizon. A black hole remains.'
+    : 'A pulsar remains, sweeping the dark.';
+  // flash + shockwave
+  if(!RM){
+    novaAnim = {t0: performance.now()};
+    const f = $('flash');
+    f.style.transition = 'none'; f.style.opacity = '1';
+    requestAnimationFrame(()=>{ f.style.transition = 'opacity 2.2s ease-out'; f.style.opacity = '0'; });
+  }
+  const g = GREEK[Math.min(S.novas-1, GREEK.length-1)];
+  $('nova-des').textContent = `SN ${new Date().getFullYear()}-${g}`;
+  $('nova-yield').textContent = `✦ ${gain} stardust forged`;
+  setTimeout(()=>$('nova-screen').classList.add('show'), RM ? 0 : 700);
+  // reset run
+  Object.assign(S, freshRun());
+  S.loggedStages = {}; S.loggedReady = false;
+  applyPop2();
+  save();
+  resize(); // recomposite the sky: the new remnant's nebula joins the background
+  refresh(true);
+});
+$('nova-continue').addEventListener('click', ()=>{
+  $('nova-screen').classList.remove('show');
+  logLine('A shockwave seeds the next cloud. It begins to fall inward.');
+  checkStageLog();
+});
+
+$('buyqty').addEventListener('click', ()=>{
+  buyQty = buyQty===1 ? 10 : buyQty===10 ? 100 : 1;
+  $('buyqty').textContent = 'buy ×'+buyQty;
+  refresh(true);
+});
+
+$('wipe').addEventListener('click', ()=>{
+  if(!confirm('Erase this timeline completely? Stardust included.')) return;
+  localStorage.removeItem(SAVE_KEY);
+  S = freshState();
+  lastStage = -1; lastRemCount = -1;
+  resize();
+  logLine(LOG_LINES.start);
+  refresh(true);
+});
+
+/* ---------------- clicking ---------------- */
+const sky = $('sky');
+function accrete(x, y){
+  const gain = clickMult() * (1 + 0.25 * GENS.reduce((a,g)=>a+(S.gens[g.id]||0)*g.base,0) * genMult()) * globalMult();
+  S.res.H += gain; S.earned.H += gain;
+  if(!S.startedLog){ S.startedLog = true; }
+  const f = document.createElement('div');
+  f.className = 'floater';
+  f.textContent = '+'+fmt(gain)+' H';
+  f.style.left = (x-10)+'px'; f.style.top = (y-24)+'px';
+  document.body.appendChild(f);
+  setTimeout(()=>f.remove(), 950);
+  if(!RM) spawnSparks(x, y);
+}
+sky.addEventListener('pointerdown', e=>{ accrete(e.clientX, e.clientY); });
+sky.addEventListener('keydown', e=>{
+  if(e.key===' '||e.key==='Enter'){ e.preventDefault(); accrete(starX(), starY()); }
+});
+
+/* ---------------- canvas ---------------- */
+const ctx = sky.getContext('2d');
+let W=0, H=0, mobile=false;
+const starfield = document.createElement('canvas');
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+// Each dead star leaves an expanding nebula, painted permanently into the sky.
+// Luminance budget: alpha decays 0.6^age while radius grows, so twenty remnants
+// read as thin ancient filaments, not fog.
+function drawNebula(sc, rem, ageRank){
+  const fade = Math.pow(0.6, ageRank);
+  if(fade < 0.02) return;
+  const rnd = mulberry32(rem.s);
+  const cx = rem.u*W, cy = rem.v*H;
+  const scale = Math.min(W,H);
+  const R0 = scale*(0.09+rnd()*0.07)*(1+Math.min(ageRank,8)*0.22);
+  const palettes = [['#3fe08f','#ff5349'],['#4faaff','#8f6bff'],['#ffd23f','#ff5349'],['#3fe08f','#4faaff']];
+  const pal = palettes[(rnd()*palettes.length)|0];
+  sc.save();
+  sc.globalCompositeOperation = 'screen';
+  for(let k=0;k<70;k++){
+    const a = rnd()*Math.PI*2;
+    const shell = rnd() < 0.45; // shock front knots vs interior wisps
+    const r = shell ? R0*(0.85+rnd()*0.25) : R0*(0.15+rnd()*0.75);
+    const x = cx+Math.cos(a)*r*(0.75+rnd()*0.5), y = cy+Math.sin(a)*r*(0.75+rnd()*0.5);
+    const pr = scale*(0.004+rnd()*0.02)*(1+ageRank*0.1)*5;
+    const col = pal[rnd()<0.6?0:1];
+    const alpha = fade*(shell?0.10:0.055)*(0.4+rnd()*0.6);
+    const g = sc.createRadialGradient(x,y,0,x,y,pr);
+    g.addColorStop(0, col+Math.round(Math.min(1,alpha)*255).toString(16).padStart(2,'0'));
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    sc.fillStyle = g;
+    sc.beginPath(); sc.arc(x,y,pr,0,Math.PI*2); sc.fill();
+  }
+  sc.restore();
+}
+
+// granulation texture: convection cells at two scales, seeded once
+const grain = document.createElement('canvas');
+{
+  grain.width = grain.height = 512;
+  const gc = grain.getContext('2d');
+  gc.fillStyle = 'rgb(128,128,128)'; gc.fillRect(0,0,512,512);
+  const rnd = mulberry32(777);
+  for(let i=0;i<900;i++){
+    const x = rnd()*512, y = rnd()*512;
+    const r = i<250 ? 18+rnd()*30 : 4+rnd()*10;
+    const a = 0.04+rnd()*0.05;
+    const g2 = gc.createRadialGradient(x,y,0,x,y,r);
+    g2.addColorStop(0, rnd()<0.5 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${a})`);
+    g2.addColorStop(1,'rgba(0,0,0,0)');
+    gc.fillStyle = g2;
+    gc.beginPath(); gc.arc(x,y,r,0,Math.PI*2); gc.fill();
+  }
+}
+
+function resize(){
+  W = sky.width = innerWidth * devicePixelRatio;
+  H = sky.height = innerHeight * devicePixelRatio;
+  sky.style.width = innerWidth+'px'; sky.style.height = innerHeight+'px';
+  mobile = matchMedia('(max-width:720px)').matches;
+  starfield.width = W; starfield.height = H;
+  const sc = starfield.getContext('2d');
+  sc.fillStyle = '#07060e'; sc.fillRect(0,0,W,H);
+  const n = Math.floor(W*H/9000);
+  for(let i=0;i<n;i++){
+    const r = Math.random();
+    sc.fillStyle = `rgba(${200+Math.random()*55|0},${200+Math.random()*55|0},${220+Math.random()*35|0},${0.15+r*0.55})`;
+    const s = r>0.97 ? 2.2 : r>0.85 ? 1.4 : 0.8;
+    sc.fillRect(Math.random()*W, Math.random()*H, s*devicePixelRatio*0.7, s*devicePixelRatio*0.7);
+  }
+  if(typeof S !== 'undefined' && Array.isArray(S.remnants)){
+    for(let i=0;i<S.remnants.length;i++){
+      drawNebula(sc, S.remnants[i], S.remnants.length-1-i);
+    }
+  }
+}
+addEventListener('resize', resize);
+resize();
+
+function starX(){ return mobile ? innerWidth/2 : (innerWidth-400)/2; }
+function starY(){ return mobile ? innerHeight*0.22 : innerHeight/2; }
+
+const sparks = [];
+function spawnSparks(x,y){
+  for(let i=0;i<7;i++){
+    const a = Math.random()*Math.PI*2, sp = 40+Math.random()*120;
+    sparks.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:0.6+Math.random()*0.4,t:0});
+  }
+  if(sparks.length>200) sparks.splice(0, sparks.length-200);
+}
+
+function lerpColor(a,b,t){
+  const pa=parseInt(a.slice(1),16), pb=parseInt(b.slice(1),16);
+  const r=(pa>>16)+(((pb>>16)-(pa>>16))*t)|0;
+  const g=((pa>>8)&255)+((((pb>>8)&255)-((pa>>8)&255))*t)|0;
+  const bl=(pa&255)+(((pb&255)-(pa&255))*t)|0;
+  return `rgb(${r},${g},${bl})`;
+}
+
+let dispR = 0.085;
+let lastFrame = performance.now();
+function render(now){
+  const dt = Math.min(0.1,(now-lastFrame)/1000); lastFrame = now;
+  const dpr = devicePixelRatio;
+  ctx.drawImage(starfield,0,0);
+
+  // the graveyard: pulsars sweep, black holes sit silent
+  for(let i=0;i<S.remnants.length;i++){
+    const rem = S.remnants[i];
+    const x = rem.u*W, y = rem.v*H;
+    if(rem.t==='ns'){
+      const p = RM ? 0.7 : 0.5+0.5*Math.sin(now/1000*3 + i*2.1);
+      const g0 = ctx.createRadialGradient(x,y,0,x,y,11*dpr);
+      g0.addColorStop(0,`rgba(185,210,255,${0.30*p})`); g0.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = g0;
+      ctx.beginPath(); ctx.arc(x,y,11*dpr,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = `rgba(235,242,255,${0.55+0.45*p})`;
+      ctx.beginPath(); ctx.arc(x,y,1.6*dpr,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.strokeStyle = 'rgba(255,150,80,0.55)';
+      ctx.lineWidth = 1.2*dpr;
+      ctx.beginPath(); ctx.arc(x,y,3.4*dpr,0,Math.PI*2); ctx.stroke();
+      ctx.fillStyle = '#020204';
+      ctx.beginPath(); ctx.arc(x,y,2.5*dpr,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  const si = stageIdx();
+  const st = STAGES[si];
+  dispR += (st.r - dispR)*Math.min(1, dt*1.5);
+
+  const cx = starX()*dpr, cy = starY()*dpr;
+  const baseR = dispR * Math.min(innerWidth, innerHeight) * dpr;
+  const t = now/1000;
+  const preCollapse = si===5;
+  let pulse = RM ? 1 : 1 + 0.018*Math.sin(t*1.6) + (preCollapse ? 0.045*Math.sin(t*8.5) : 0);
+  const R = baseR*pulse;
+
+  // outer glow
+  const glowR = R*3.2;
+  let g = ctx.createRadialGradient(cx,cy,R*0.5, cx,cy,glowR);
+  g.addColorStop(0, st.glow+'55');
+  g.addColorStop(0.45, st.glow+'22');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx-glowR, cy-glowR, glowR*2, glowR*2);
+
+  // corona: three wide, slow, heavily overlapping lobes — asymmetric breathing halo,
+  // drawn under the disc so they only read outside the limb
+  if(si>0){
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    for(let i=0;i<3;i++){
+      const a = (RM?0:t*0.05) + i*Math.PI*2/3;
+      const fx = cx+Math.cos(a)*R*1.02, fy = cy+Math.sin(a)*R*1.02;
+      g = ctx.createRadialGradient(fx,fy,0,fx,fy,R*0.9);
+      g.addColorStop(0, st.glow+'1e'); g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(fx,fy,R*0.9,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // body: self-luminous — brightness radiates from the center, no external highlight
+  const coreCol = si===0 ? st.inner : lerpColor(st.inner,'#ffffff',0.7);
+  g = ctx.createRadialGradient(cx,cy,0, cx,cy,R);
+  g.addColorStop(0, coreCol);
+  g.addColorStop(0.30, st.inner);
+  g.addColorStop(0.72, st.outer);
+  g.addColorStop(1, lerpColor(st.outer,'#000000',0.30));
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
+
+  // granulation: two counter-rotating noise layers clipped to the disc
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,R*0.99,0,Math.PI*2); ctx.clip();
+  ctx.globalCompositeOperation = 'overlay';
+  for(let L=0;L<2;L++){
+    ctx.save();
+    ctx.translate(cx,cy);
+    ctx.rotate((RM?0:t*0.012)*(L?-1:1) + L*2.1);
+    ctx.globalAlpha = (0.30+si*0.05)*(L?0.6:1);
+    const sz = R*2.25*(L?1.6:1);
+    ctx.drawImage(grain, -sz/2, -sz/2, sz, sz);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // limb darkening
+  g = ctx.createRadialGradient(cx,cy,R*0.6, cx,cy,R);
+  g.addColorStop(0,'rgba(0,0,0,0)');
+  g.addColorStop(1,'rgba(0,0,0,0.38)');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fill();
+
+  // sunspots while hydrogen-burning: magnetic knots drifting with rotation
+  if(si===1){
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.clip();
+    const rot = RM?0:t*0.02;
+    for(const [su,sv,sr] of [[0.38,-0.18,0.055],[0.12,0.32,0.04],[-0.33,0.12,0.048]]){
+      const ang = Math.atan2(sv,su)+rot, rad = Math.hypot(su,sv)*R;
+      const sx = cx+Math.cos(ang)*rad, sy = cy+Math.sin(ang)*rad;
+      const g3 = ctx.createRadialGradient(sx,sy,0,sx,sy,R*sr*2);
+      g3.addColorStop(0,'rgba(58,24,4,0.55)');
+      g3.addColorStop(0.5,'rgba(96,44,10,0.25)');
+      g3.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = g3;
+      ctx.beginPath(); ctx.arc(sx,sy,R*sr*2,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // pre-collapse iron heart
+  if(preCollapse){
+    const coreP = Math.min(1, S.res.Fe/CHANDRA);
+    const cr = R*(0.12+0.3*coreP)*(RM?1:(1+0.06*Math.sin(t*11)));
+    g = ctx.createRadialGradient(cx,cy,0,cx,cy,cr);
+    g.addColorStop(0,'#ffffff');
+    g.addColorStop(0.6,'#dfe6ff');
+    g.addColorStop(1,'rgba(220,230,255,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(cx,cy,cr,0,Math.PI*2); ctx.fill();
+  }
+
+  // click sparks
+  for(let i=sparks.length-1;i>=0;i--){
+    const s = sparks[i];
+    s.t += dt;
+    if(s.t >= s.life){ sparks.splice(i,1); continue; }
+    const p = 1-s.t/s.life;
+    ctx.fillStyle = `rgba(255,233,176,${p*0.9})`;
+    ctx.fillRect((s.x+s.vx*s.t)*dpr, (s.y+s.vy*s.t)*dpr, 2.4*dpr*p+0.6, 2.4*dpr*p+0.6);
+  }
+
+  // supernova shockwave
+  if(novaAnim){
+    const nt = (now-novaAnim.t0)/1000;
+    if(nt > 2.6){ novaAnim = null; }
+    else{
+      const maxR = Math.hypot(W,H)*0.75;
+      const rr = maxR * (1-Math.pow(1-Math.min(1,nt/2.2),3));
+      const alpha = Math.max(0, 1-nt/2.4);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.strokeStyle = `rgba(255,190,150,${alpha*0.85})`;
+      ctx.lineWidth = 30*dpr*(1-nt/3);
+      ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2); ctx.stroke();
+      ctx.strokeStyle = `rgba(160,200,255,${alpha*0.5})`;
+      ctx.lineWidth = 8*dpr;
+      ctx.beginPath(); ctx.arc(cx,cy,rr*0.82,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  requestAnimationFrame(render);
+}
+
+/* ---------------- boot ---------------- */
+load();
+applyPop2();
+
+// offline progress
+resize(); // paint remnant nebulae now that the save is loaded
+{
+  const away = Math.min(7200*(1+bhCount()), (Date.now()-(S.last||Date.now()))/1000);
+  if(away > 60){
+    produce(away);
+    logLine(`While you looked away, ${Math.floor(away/60)} minutes of infall continued.`);
+  }
+}
+if(!S.startedLog){ logLine(LOG_LINES.start); S.startedLog = true; }
+checkStageLog();
+refresh(true);
+
+setInterval(()=>{ produce(0.1); }, 100);
+setInterval(()=>{ refresh(); }, 250);
+
+// Pulsar automation: buys only when the resource is at 2x cost, so it never
+// starves the player's own plans. One purchase per category per pulse.
+let autoT = 0;
+setInterval(()=>{
+  const ns = nsCount(); if(!ns) return;
+  autoT += 500;
+  if(autoT < Math.max(1000, 3000 - Math.max(0, ns-3)*500)) return;
+  autoT = 0;
+  let best = null, bc = Infinity;
+  for(const g of GENS){ const c = genCost(g); if(S.res.H > 2*c && c < bc){ bc = c; best = g; } }
+  if(best){ S.res.H -= bc; S.gens[best.id] = (S.gens[best.id]||0)+1; }
+  if(ns >= 2){
+    for(const p of PROCS){
+      const c = procCost(p);
+      if(S.res[p.inp] > 2*c){ S.res[p.inp] -= c; S.procs[p.id] = (S.procs[p.id]||0)+1; checkStageLog(); break; }
+    }
+  }
+  if(ns >= 3){
+    for(const u0 of UPGS){
+      if(!S.upgs[u0.id] && S.res[u0.cur] > 2*u0.cost){ S.res[u0.cur] -= u0.cost; S.upgs[u0.id] = true; logLine(u0.name+' established.'); break; }
+    }
+  }
+}, 500);
+setInterval(save, 5000);
+addEventListener('visibilitychange', ()=>{ if(document.hidden) save(); });
+requestAnimationFrame(render);
+</script>
